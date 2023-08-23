@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { isBase64Image } from "@/lib/utils";
 import { useUploadThing } from "@/lib/uploadthing";
+import { updateUser } from "@/lib/actions/user.actions";
+import { usePathname, useRouter } from "next/navigation";
 
 interface AccountProfileProps {
   user: {
@@ -38,6 +40,8 @@ interface AccountProfileProps {
 const AccountProfile: React.FC<AccountProfileProps> = ({ user, btnTitle }) => {
   const [files, setFiles] = useState<Array<File>>([]);
   const { startUpload } = useUploadThing("media");
+  const router = useRouter();
+  const pathname = usePathname();
 
   const form = useForm({
     resolver: zodResolver(UserValidation),
@@ -60,7 +64,6 @@ const AccountProfile: React.FC<AccountProfileProps> = ({ user, btnTitle }) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
 
-      console.log(file);
       setFiles(Array.from(e.target.files));
 
       if (!file.type.includes("image")) return;
@@ -85,7 +88,19 @@ const AccountProfile: React.FC<AccountProfileProps> = ({ user, btnTitle }) => {
         values.profile_photo = imgRes[0].fileUrl;
       }
     }
-    console.log(values);
+    await updateUser({
+      userId: user.id,
+      username: values.username,
+      name: values.name,
+      bio: values.bio,
+      image: values.profile_photo,
+      path: pathname,
+    });
+    if (pathname === "/profile/edit") {
+      router.back();
+    } else {
+      router.push("/");
+    }
   };
 
   return (
@@ -128,6 +143,7 @@ const AccountProfile: React.FC<AccountProfileProps> = ({ user, btnTitle }) => {
                   onChange={(e) => handleImage(e, field.onChange)}
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
