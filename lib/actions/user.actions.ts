@@ -2,6 +2,7 @@
 
 import { connectToDatabase } from "@/lib/mongoose";
 import User from "@/models/user.model";
+import Thread from "@/models/thread.model";
 import { revalidatePath } from "next/cache";
 
 interface Params {
@@ -49,5 +50,32 @@ export async function fetchUser(userId: string) {
     return await User.findOne({ id: userId });
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`);
+  }
+}
+
+export async function fetchUserPosts(userId: string) {
+  try {
+    connectToDatabase();
+
+    // Find all threads authored by the user with the given userId
+    const threads = await User.findOne({ id: userId }).populate({
+      path: "threads",
+      model: Thread,
+      populate: [
+        {
+          path: "children",
+          model: Thread,
+          populate: {
+            path: "author",
+            model: User,
+            select: "name image id", // Select the "name" and "_id" fields from the "User" model
+          },
+        },
+      ],
+    });
+    return threads;
+  } catch (error) {
+    console.error("Error fetching user threads:", error);
+    throw error;
   }
 }
